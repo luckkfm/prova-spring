@@ -1,18 +1,13 @@
 package br.edu.faculdade.vagas;
 
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-// A aula 03 acrescenta dois imports aqui:
-// import java.util.Optional;
-// import java.util.UUID;
-
-/**
- * O mesmo formato do VagaService, com uma diferença que é da frente 2: empresa
- * se busca por slug, não por id — é o slug que vai na URL.
- */
 @Service
+@Transactional(readOnly = true)
 public class EmpresaService {
 
     private final EmpresaRepository repositorio;
@@ -21,44 +16,44 @@ public class EmpresaService {
         this.repositorio = repositorio;
     }
 
-    public List<Empresa> listar() {
-        return repositorio.todas();
-    }
-
-    // Lista, pelo mesmo motivo da frente 1: ainda não há como dizer "não achei".
-    public List<Empresa> buscarPorSlug(String slug) {
-        return repositorio.todas().stream()
-                .filter(e -> e.slug().equals(slug))
+    public List<EmpresaResposta> listar() {
+        return repositorio.findAll(Sort.by("nome")).stream()
+                .map(EmpresaResposta::de)
                 .toList();
     }
 
-    // =========================================================================
-    // AULA 03 · a frente 2 e o identificador que vem de fora
-    //
-    // A frente 1 inventa o identificador da vaga. Aqui não: o slug vem no
-    // corpo, escolhido por quem cria, e a API só o guarda. O que a API gera é o
-    // id — que nesta frente não identifica coisa nenhuma nas URLs.
-    //
-    // Não há PUT de empresa nesta aula: trocar o slug seria trocar o endereço
-    // do recurso, e isso é uma decisão de contrato que a turma ainda não tem
-    // ferramenta para tomar.
-    //
-    // Para ativar: descomente o bloco abaixo e apague o buscarPorSlug da aula
-    // 02, acima.
-    // =========================================================================
-    //
-    // public Optional<Empresa> buscarPorSlug(String slug) {
-    //     return repositorio.porSlug(slug);
-    // }
-    //
-    // public Empresa criar(Empresa nova) {
-    //     Empresa comId = new Empresa(
-    //         UUID.randomUUID().toString(),
-    //         nova.nome(), nova.slug(), nova.site(), nova.descricao());
-    //     return repositorio.salvar(comId);
-    // }
-    //
-    // public boolean apagar(String slug) {
-    //     return repositorio.remover(slug);
-    // }
+    public EmpresaResposta buscarPorSlug(String slug) {
+        return EmpresaResposta.de(encontrar(slug));
+    }
+
+    @Transactional
+    public EmpresaResposta criar(EmpresaEntrada entrada) {
+        if (repositorio.existsBySlug(entrada.slug())) {
+            throw new ConflitoException("Já existe uma empresa com o slug '" + entrada.slug() + "'.");
+        }
+        Empresa nova = new Empresa(entrada.nome(), entrada.slug(),
+                entrada.site(), entrada.descricao());
+        return EmpresaResposta.de(repositorio.save(nova));
+    }
+
+    @Transactional
+    public EmpresaResposta atualizar(String slug, EmpresaEntrada entrada) {
+        Empresa empresa = encontrar(slug);
+        if (!slug.equals(entrada.slug()) && repositorio.existsBySlug(entrada.slug())) {
+            throw new ConflitoException("Já existe uma empresa com o slug '" + entrada.slug() + "'.");
+        }
+        empresa.atualizar(entrada.nome(), entrada.slug(), entrada.site(), entrada.descricao());
+        return EmpresaResposta.de(empresa);
+    }
+
+    @Transactional
+    public void apagar(String slug) {
+        repositorio.delete(encontrar(slug));
+    }
+
+    private Empresa encontrar(String slug) {
+        return repositorio.findBySlug(slug)
+                .orElseThrow(() -> new RecursoNaoEncontradoException(
+                        "Empresa '" + slug + "' não encontrada."));
+    }
 }
