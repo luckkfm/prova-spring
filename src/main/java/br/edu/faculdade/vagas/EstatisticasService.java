@@ -1,16 +1,15 @@
 package br.edu.faculdade.vagas;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Map;
+import java.util.TreeMap;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
-/**
- * A entrega da aula 02, intacta. Evoluir a API não pode quebrar o que já
- * existia — conferir isso faz parte de juntar as quatro partes da aula 03.
- */
 @Service
+@Transactional(readOnly = true)
 public class EstatisticasService {
 
     private final VagaRepository vagas;
@@ -19,20 +18,17 @@ public class EstatisticasService {
         this.vagas = vagas;
     }
 
-    // Map.of aceita no máximo 10 pares; são quatro aqui, então cabe. Se a
-    // equipe quiser mais números, troque por new LinkedHashMap<>() — e de
-    // quebra a ordem das chaves passa a ser a que você escreveu.
-    public Map<String, Object> resumo() {
-        List<Vaga> todas = vagas.todas();
-        return Map.of(
-            "totalDeVagas", todas.size(),
-            "aceitamIniciante", todas.stream()
-                .filter(Vaga::aceitaIniciante)
-                .count(),
-            "porArea", todas.stream()
-                .collect(Collectors.groupingBy(Vaga::area, Collectors.counting())),
-            "porSenioridade", todas.stream()
-                .collect(Collectors.groupingBy(Vaga::senioridade, Collectors.counting()))
-        );
+    public EstatisticasResposta resumo() {
+        List<Vaga> todas = vagas.findAll();
+        return new EstatisticasResposta(
+                todas.size(),
+                vagas.countByAceitaInicianteTrue(),
+                contarPor(todas, Vaga::getArea),
+                contarPor(todas, Vaga::getSenioridade));
+    }
+
+    private TreeMap<String, Long> contarPor(List<Vaga> todas, Function<Vaga, String> chave) {
+        return todas.stream()
+                .collect(Collectors.groupingBy(chave, TreeMap::new, Collectors.counting()));
     }
 }

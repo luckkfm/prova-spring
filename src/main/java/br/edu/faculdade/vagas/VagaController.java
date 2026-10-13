@@ -2,20 +2,18 @@ package br.edu.faculdade.vagas;
 
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.net.URI;
 import java.util.List;
 
-/**
- * Recebe o pedido e devolve a resposta. Cada método tem uma linha.
- *
- * Leia o método em voz alta: "devolve as vagas". Nenhum if, nenhum for, nenhum
- * número solto. Se aparecer algum, é regra — e regra é do servico.
- *
- * Nada de Vaga aparece aqui: o que entra é VagaEntrada, o que sai é
- * VagaResposta. O modelo fica do lado de dentro.
- */
 @RestController
 @RequestMapping("/vagas")
 public class VagaController {
@@ -32,33 +30,25 @@ public class VagaController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<VagaResposta> porId(@PathVariable String id) {
-        return servico.buscarPorId(id)
-            .map(ResponseEntity::ok)
-            .orElse(ResponseEntity.notFound().build());
+    public VagaResposta porId(@PathVariable Long id) {
+        return servico.buscarPorId(id);
     }
 
     @PostMapping
     public ResponseEntity<VagaResposta> criar(@Valid @RequestBody VagaEntrada entrada) {
         VagaResposta salva = servico.criar(entrada);
-        URI onde = URI.create("/vagas/" + salva.id());
-        return ResponseEntity.created(onde).body(salva);
+        return ResponseEntity.created(URI.create("/vagas/" + salva.id())).body(salva);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<VagaResposta> trocar(@PathVariable String id,
-                                               @Valid @RequestBody VagaEntrada nova) {
-        return servico.trocar(id, nova)
-            .map(ResponseEntity::ok)
-            .orElse(ResponseEntity.notFound().build());
+    public VagaResposta atualizar(@PathVariable Long id,
+                                  @Valid @RequestBody VagaEntrada entrada) {
+        return servico.atualizar(id, entrada);
     }
 
-    // ResponseEntity<Void>: não há corpo nenhum para tipar. Devolver o objeto
-    // recém-apagado sugeriria que ele ainda está lá.
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> apagar(@PathVariable String id) {
-        return servico.apagar(id)
-            ? ResponseEntity.noContent().build()
-            : ResponseEntity.notFound().build();
+    public ResponseEntity<Void> apagar(@PathVariable Long id) {
+        servico.apagar(id);
+        return ResponseEntity.noContent().build();
     }
 }

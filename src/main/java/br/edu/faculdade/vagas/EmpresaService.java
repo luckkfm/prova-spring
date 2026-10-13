@@ -11,9 +11,11 @@ import java.util.List;
 public class EmpresaService {
 
     private final EmpresaRepository repositorio;
+    private final VagaRepository vagas;
 
-    public EmpresaService(EmpresaRepository repositorio) {
+    public EmpresaService(EmpresaRepository repositorio, VagaRepository vagas) {
         this.repositorio = repositorio;
+        this.vagas = vagas;
     }
 
     public List<EmpresaResposta> listar() {
@@ -48,7 +50,11 @@ public class EmpresaService {
 
     @Transactional
     public void apagar(String slug) {
-        repositorio.delete(encontrar(slug));
+        Empresa empresa = encontrar(slug);
+        if (vagas.existsByEmpresa(empresa)) {
+            throw new ConflitoException("A empresa '" + slug + "' ainda tem vagas publicadas.");
+        }
+        repositorio.delete(empresa);
     }
 
     private Empresa encontrar(String slug) {
