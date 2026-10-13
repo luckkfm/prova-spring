@@ -1,21 +1,13 @@
 package br.edu.faculdade.vagas;
 
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
 
-// A aula 03 acrescenta dois imports aqui:
-// import java.util.Optional;
-// import java.util.UUID;
-
-/**
- * Idêntico ao EmpresaService, trocando Empresa por Pessoa e slug por id. A
- * esta altura o formato já se escreve de cabeça — é o ponto do desafio da
- * aula 02 ter quatro partes com a mesma forma.
- */
 @Service
+@Transactional(readOnly = true)
 public class PessoaService {
 
     private final PessoaRepository repositorio;
@@ -24,33 +16,44 @@ public class PessoaService {
         this.repositorio = repositorio;
     }
 
-    public List<Pessoa> listar() {
-        return repositorio.todas();
-    }
-
-    public List<Pessoa> buscarPorId(String id) {
-        return repositorio.todas().stream()
-                .filter(p -> p.id().equals(id))
+    public List<PessoaResposta> listar() {
+        return repositorio.findAll(Sort.by("id")).stream()
+                .map(PessoaResposta::de)
                 .toList();
     }
 
-     public Pessoa criar(Pessoa nova) {
-         Pessoa comId = new Pessoa(
-             UUID.randomUUID().toString(),
-             nova.nome(), nova.email(), nova.area(), nova.senioridade());
-         return repositorio.salvar(comId);
-     }
+    public PessoaResposta buscarPorId(Long id) {
+        return PessoaResposta.de(encontrar(id));
+    }
 
-     // O id vem da URL, não do corpo. Repetir esta chamada não muda mais
-     // nada: o estado final já é o pedido.
-     public Optional<Pessoa> trocar(String id, Pessoa nova) {
-         Pessoa comId = new Pessoa(
-             id,
-             nova.nome(), nova.email(), nova.area(), nova.senioridade());
-         return repositorio.trocar(id, comId);
-     }
+    @Transactional
+    public PessoaResposta criar(PessoaEntrada entrada) {
+        if (repositorio.existsByEmailIgnoreCase(entrada.email())) {
+            throw new ConflitoException("Já existe uma pessoa com o e-mail '" + entrada.email() + "'.");
+        }
+        Pessoa nova = new Pessoa(entrada.nome(), entrada.email(),
+                entrada.area(), entrada.senioridade());
+        return PessoaResposta.de(repositorio.save(nova));
+    }
 
-     public boolean apagar(String id) {
-         return repositorio.remover(id);
-     }
+    @Transactional
+    public PessoaResposta atualizar(Long id, PessoaEntrada entrada) {
+        Pessoa pessoa = encontrar(id);
+        if (repositorio.existsByEmailIgnoreCaseAndIdNot(entrada.email(), id)) {
+            throw new ConflitoException("Já existe uma pessoa com o e-mail '" + entrada.email() + "'.");
+        }
+        pessoa.atualizar(entrada.nome(), entrada.email(), entrada.area(), entrada.senioridade());
+        return PessoaResposta.de(pessoa);
+    }
+
+    @Transactional
+    public void apagar(Long id) {
+        repositorio.delete(encontrar(id));
+    }
+
+    private Pessoa encontrar(Long id) {
+        return repositorio.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException(
+                        "Pessoa " + id + " não encontrada."));
+    }
 }

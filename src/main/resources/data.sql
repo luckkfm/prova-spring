@@ -18,3 +18,11 @@ INSERT INTO vagas (titulo, descricao, area, senioridade, localizacao, aceita_ini
 ('Pessoa Engenheira de Dados Pleno', 'Pipelines de rastreamento de carga, em Python e SQL.', 'Dados', 'Pleno', 'Remoto', FALSE, (SELECT id FROM empresas WHERE slug = 'tucano-systems')),
 ('Pessoa Desenvolvedora Mobile Júnior', 'Aplicativos em React Native para clientes da agência.', 'Mobile', 'Júnior', 'Remoto', TRUE, (SELECT id FROM empresas WHERE slug = 'mareh-digital')),
 ('Pessoa Desenvolvedora Android Júnior', 'Aplicativo de agenda para as clínicas parceiras.', 'Mobile', 'Júnior', 'Presencial · Recife', FALSE, (SELECT id FROM empresas WHERE slug = 'aurora-tech'));
+
+INSERT INTO pessoas (nome, email, area, senioridade) VALUES
+('Ana Nogueira', 'ana@exemplo.com', 'Front-end', 'Júnior'),
+('Bruno Sales', 'bruno@exemplo.com', 'Back-end', 'Júnior'),
+('Carla Menezes', 'carla@exemplo.com', 'Dados', 'Estágio'),
+('Diego Tavares', 'diego@exemplo.com', 'Front-end', 'Pleno'),
+('Elisa Prado', 'elisa@exemplo.com', 'Mobile', 'Júnior'),
+('Fábio Vasconcelos', 'fabio@exemplo.com', 'Back-end', 'Pleno');
